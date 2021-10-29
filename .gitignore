@@ -1,0 +1,4 @@
+data/COVID19_twitter_full_dataset.csv
+data/COVID19_twitter_partial_dataset.csv
+
+.env
