@@ -1,20 +1,27 @@
+import os
+
 import pandas as pd
 import random
 
-from .constants import FULL_DATASET_PATH, PARTIAL_DATASET_PATH
+from .constants import FULL_DATASET_NAME, PARTIAL_DATASET_NAME
 
 INITIAL_PERCENTAGE = 0.01
 INITIAL_SEED = 27
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
-def sample(input_path=FULL_DATASET_PATH, output_path=PARTIAL_DATASET_PATH, percentage=INITIAL_PERCENTAGE, seed=INITIAL_SEED):
+input_path = os.path.join(current_dir, FULL_DATASET_NAME)
+output_path = os.path.join(current_dir, PARTIAL_DATASET_NAME)
+
+
+def sample(input_path=input_path, output_path=output_path, percentage=INITIAL_PERCENTAGE, seed=INITIAL_SEED):
     random.seed(seed)
     df = pd.read_csv(
-        input_path,
+        os.path.join(current_dir, input_path),
         header=0,
         skiprows=lambda x: x > 0 and random.random() > percentage
     )
-    df.to_csv(output_path)
+    df.to_csv(os.path.join(current_dir, output_path))
 
 
 def line_count(input_path):

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import pandas as pd
 import tweepy
 
-from .constants import RAW_TWEETS_PATH, PARTIAL_DATASET_PATH
+from .constants import RAW_TWEETS_NAME, PARTIAL_DATASET_NAME
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -45,8 +45,8 @@ def main():
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
     api = tweepy.API(auth)
     # RAW_TWEETS_PATH = "COVID19_twitter_raw_tweets.csv"
-    if os.path.exists(RAW_TWEETS_PATH):
-        df = pd.read_csv(RAW_TWEETS_PATH)
+    if os.path.exists(RAW_TWEETS_NAME):
+        df = pd.read_csv(RAW_TWEETS_NAME)
     else:
         df = pd.DataFrame(columns=["id", "raw_text"])
 
