@@ -16,24 +16,21 @@ API_RATE_LIMIT = 900  # rate limit set
 SLEEP_TIME = 60 * (15 + 1)  # seconds. Sleep for 16 minutes
 ERROR_IDS_NAME = "error_ids.csv"
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-
 logger.info("Reading consumer keys for Twitter API...")
 load_dotenv()  # load env variables in .env file
 consumer_key = os.getenv("OAUTH_CONSUMER_KEY")
 consumer_secret = os.getenv("OAUTH_CONSUMER_SECRET")
-
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 api = tweepy.API(auth)
 
+logger.info("Setting up directories...")
+current_dir = os.path.dirname(os.path.abspath(__file__))
 raw_tweets_dir = os.path.join(current_dir, RAW_TWEETS_DIR_NAME)
-
 try:
     os.mkdir(raw_tweets_dir)
-    logger.info(f"Creating {raw_tweets_dir} directory.")
+    logger.info(f"- Creating {raw_tweets_dir} directory.")
 except FileExistsError:
-    logger.info(f"{raw_tweets_dir} already created.")
-
+    logger.info(f"- {raw_tweets_dir} already created.")
 input_file = os.path.join(current_dir, PARTIAL_DATASET_NAME)
 
 
@@ -53,40 +50,47 @@ def get_latest_tweet_id(raw_tweets_dir=raw_tweets_dir):
     files = [file for file in os.listdir(raw_tweets_dir)
              if os.path.isfile(os.path.join(raw_tweets_dir, file))
              and file != ERROR_IDS_NAME]  # Get only data files in the directory
-    if len(files) == 0:
-        return None
-    files = [int(file[:-4]) for file in files]  # Get ints only from file names
-    latest_chunk = str(max(files)) + ".csv"
+    if len(files) == 0:  # If no chunks are available, check error file
+        if os.path.exists(os.path.join(raw_tweets_dir, ERROR_IDS_NAME)):
+            latest = ERROR_IDS_NAME
+        else:
+            return None
+    else:
+        files = [int(os.path.splitext(file)[0])
+                 for file in files]  # Get ints only from file names
+        latest = str(max(files)) + ".csv"
     df = pd.read_csv(
-        os.path.join(raw_tweets_dir, latest_chunk),
+        os.path.join(raw_tweets_dir, latest),
         header=0,
         usecols=["tweet_id"],
         dtype=str
     )
-    return df.iat[-1, 0]
+    return df.iat[-1, 0] if not df.empty else None
 
 
 def get_text(api, tweet_id):
     """Get tweet text by tweet_id using the Twitter API."""
     tweet_id = tweet_id.strip()
     tweet_returned = False
+    text = ""
+    exception = None
 
     try:
         tweet_info = api.get_status(
             tweet_id, tweet_mode="extended")  # get full tweet
         tweet_returned = True
         status_json = json.loads(json.dumps(tweet_info._json))
-        return tweet_returned, status_json["full_text"], None
+        text = status_json["full_text"]
 
     except Exception as e:
+        exception = e
         if isinstance(e, tweepy.TweepyException):
             logger.error(f"API error on id {tweet_id}, error: {e}")
 
-    return tweet_returned, "", e
+    return tweet_returned, text, exception
 
 
-# make sure chunk_size % API_RATE_LIMIT == 0 for best performance
-def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw_tweets_dir, chunk_size=API_RATE_LIMIT * 5):
+def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw_tweets_dir, chunk_size=5000):
     """Dump raw tweet texts in separate files (chunks), each containing chunk_size rows or tweets."""
     input_df = pd.read_csv(
         input_file,
@@ -143,22 +147,22 @@ def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw
                         continue
                     retry = True
                     while retry:
-                        tweet_returned, text, e = get_text(api, tweet_id)
+                        tweet_returned, text, exception = get_text(
+                            api, tweet_id)
                         if tweet_returned:
                             row = {"id": tweet_id, "raw_text": text}
                             df = df.append(row, ignore_index=True)
                             retry = False
                             continue
-                        if isinstance(e, tweepy.TooManyRequests):  # Rate limit hit?
+                        if isinstance(exception, tweepy.TooManyRequests):  # Rate limit hit?
                             logger.error(
                                 "Rate limit hit exception. Taking a break...")
                             sleep()
                         else:
                             error_row = {"tweet_id": tweet_id,
-                                         "error_type": type(e).__name__}
-                            error_df.append(error_row)
+                                         "error_type": type(exception).__name__}
+                            error_df.append(error_row, ignore_index=True)
                             retry = False
-
                 logger.info(
                     "Rate limit hit (no exception). Printing current progress and taking a break...")
                 df.to_csv(chunk_path, index=False)
@@ -167,17 +171,15 @@ def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw
 
             df.to_csv(chunk_path, index=False)
             error_df.to_csv(error_ids_path, index=False)
-            if chunk_size % API_RATE_LIMIT != 0:
-                logger.info("Pausing between chunks...")
-                sleep()
+            logger.info("Pausing between chunks...")
+            sleep()
     except Exception as e:
-        # Any other type of error, then ShutDown
+        # Any other type of error, then shut down
         if isinstance(e, tweepy.TooManyRequests):
             logger.error("Rate limit error")
         else:
             logger.error(f"Encountered exception {e}")
         logger.info("Closing API")
-
         return  # Exit condition
 
 
