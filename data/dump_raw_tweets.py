@@ -13,7 +13,7 @@ from .constants import RAW_TWEETS_DIR_NAME, PARTIAL_DATASET_NAME
 logger = logging.getLogger(__name__)
 
 API_RATE_LIMIT = 900  # rate limit set
-SLEEP_TIME = 60 * (15 + 1)  # seconds. Sleep for 16 minutes
+SLEEP_TIME = 60 * (15 + 1)  # seconds. sleep for 16 minutes
 ERROR_IDS_NAME = "error_ids.csv"
 
 logger.info("Reading consumer keys for Twitter API...")
@@ -136,7 +136,7 @@ def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw
                     continue
 
                 logger.info(
-                    f"- Dumping indices from {start} to {end}...")
+                    f"- Dumping indices from {start} to {end - 1}...")
 
                 # Still O(n)
                 for index in range(start, end):

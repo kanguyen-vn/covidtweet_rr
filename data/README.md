@@ -6,10 +6,10 @@ The code in this directory can be used to download and preprocess text data retr
 
 Place your Twitter API credentials in an `.env` file in the root directory (`..` from this directory). The `.env` file should look like this:
 
-```
-OAUTH_CONSUMER_KEY=*YOUR_TWITTER_API_CONSUMER_KEY*
-OAUTH_CONSUMER_SECRET=*YOUR_TWITTER_API_CONSUMER_SECRET*
-```
+<pre>
+OAUTH_CONSUMER_KEY=<b>YOUR_TWITTER_API_CONSUMER_KEY</b>
+OAUTH_CONSUMER_SECRET=<b>YOUR_TWITTER_API_CONSUMER_SECRET</b>
+</pre>
 
 Note that there should NOT be any quotation marks or apostrophes surrounding the credentials. Learn more about the Twitter API [here](https://developer.twitter.com/en/docs/twitter-api).
 
