@@ -125,7 +125,7 @@ def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw
             file_no = chunk_index // chunk_size
             chunk_path = os.path.join(raw_tweets_dir, f"{file_no}.csv")
             logger.info(f"Dumping raw tweets in chunk {file_no}/{num_chunks}:")
-            df = pd.DataFrame(columns=["id", "raw_text"])
+            df = pd.DataFrame(columns=["tweet_id", "raw_text"])
 
             # Iterate indices in each chunk by rate limit
             for limit_index in range(chunk_start, chunk_end, API_RATE_LIMIT):
@@ -161,6 +161,7 @@ def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw
                         else:
                             error_row = {"tweet_id": tweet_id,
                                          "error_type": type(exception).__name__}
+                            print(error_row)
                             error_df.append(error_row, ignore_index=True)
                             retry = False
                 logger.info(
