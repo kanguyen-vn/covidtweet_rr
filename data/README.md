@@ -4,7 +4,7 @@ The code in this directory can be used to download and preprocess text data retr
 
 ### Setting up the API
 
-Place your Twitter API credentials in an `.env.` file in the root directory (`..` from this directory). The `.env.` file should look like this:
+Place your Twitter API credentials in an `.env` file in the root directory (`..` from this directory). The `.env` file should look like this:
 
 ```
 OAUTH_CONSUMER_KEY=*YOUR_TWITTER_API_CONSUMER_KEY*

@@ -150,7 +150,7 @@ def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw
                         tweet_returned, text, exception = get_text(
                             api, tweet_id)
                         if tweet_returned:
-                            row = {"id": tweet_id, "raw_text": text}
+                            row = {"tweet_id": tweet_id, "raw_text": text}
                             df = df.append(row, ignore_index=True)
                             retry = False
                             continue
@@ -161,8 +161,8 @@ def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw
                         else:
                             error_row = {"tweet_id": tweet_id,
                                          "error_type": type(exception).__name__}
-                            print(error_row)
-                            error_df.append(error_row, ignore_index=True)
+                            error_df = error_df.append(
+                                error_row, ignore_index=True)
                             retry = False
                 logger.info(
                     "Rate limit hit (no exception). Printing current progress and taking a break...")
