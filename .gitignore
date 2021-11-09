@@ -1,4 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Data files
 data/COVID19_twitter_full_dataset.csv
 data/COVID19_twitter_partial_dataset.csv
+data/raw_tweets/**.csv
 
+# Environment file that contains Twitter API access tokens
 .env
+
+# Log file
+data.log
