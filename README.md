@@ -3,7 +3,9 @@
 #### Team members: Swati Adhikari, Provakar Mondal, Kiet Nguyen
 
 This repository contains the code for our CS 5604 (Information Storage and Retrieval) final project at Virginia Tech.
+
 Semester: Fall 2021
+
 Instructor: Dr. Ismini Lourentzou
 
 ## Dataset

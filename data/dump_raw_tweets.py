@@ -8,13 +8,12 @@ from dotenv import load_dotenv
 import pandas as pd
 import tweepy
 
-from .constants import RAW_TWEETS_DIR_NAME, PARTIAL_DATASET_NAME
+from .constants import RAW_TWEETS_DIR_NAME, PARTIAL_DATASET_NAME, ERROR_IDS_NAME
 
 logger = logging.getLogger(__name__)
 
 API_RATE_LIMIT = 900  # rate limit set
 SLEEP_TIME = 60 * (15 + 1)  # seconds. sleep for 16 minutes
-ERROR_IDS_NAME = "error_ids.csv"
 
 logger.info("Reading consumer keys for Twitter API...")
 load_dotenv()  # load env variables in .env file
@@ -125,7 +124,11 @@ def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw
             file_no = chunk_index // chunk_size
             chunk_path = os.path.join(raw_tweets_dir, f"{file_no}.csv")
             logger.info(f"Dumping raw tweets in chunk {file_no}/{num_chunks}:")
-            df = pd.DataFrame(columns=["tweet_id", "raw_text"])
+
+            if os.path.exists(chunk_path):
+                df = pd.read_csv(chunk_path, header=0, dtype=str)
+            else:
+                df = pd.DataFrame(columns=["tweet_id", "raw_text"])
 
             # Iterate indices in each chunk by rate limit
             for limit_index in range(chunk_start, chunk_end, API_RATE_LIMIT):
