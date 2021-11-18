@@ -118,7 +118,7 @@ def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw
             chunk_start = chunk_index
             chunk_end = min(chunk_index + chunk_size, num_rows)
 
-            if chunk_end < latest_index:
+            if chunk_end <= latest_index:
                 continue
 
             file_no = chunk_index // chunk_size
@@ -135,7 +135,7 @@ def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw
                 start = limit_index
                 end = min(limit_index + API_RATE_LIMIT, chunk_end)
 
-                if end < latest_index:
+                if end <= latest_index:
                     continue
 
                 logger.info(
@@ -167,11 +167,13 @@ def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw
                             error_df = error_df.append(
                                 error_row, ignore_index=True)
                             retry = False
-                logger.info(
-                    "Rate limit hit (no exception). Printing current progress and taking a break...")
-                df.to_csv(chunk_path, index=False)
-                error_df.to_csv(error_ids_path, index=False)
-                sleep()
+
+                if end != chunk_end:  # Don't have to sleep twice if at end of chunk
+                    logger.info(
+                        "Rate limit hit (no exception). Printing current progress and taking a break...")
+                    df.to_csv(chunk_path, index=False)
+                    error_df.to_csv(error_ids_path, index=False)
+                    sleep()
 
             df.to_csv(chunk_path, index=False)
             error_df.to_csv(error_ids_path, index=False)

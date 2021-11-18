@@ -4,6 +4,7 @@ import sys
 
 from data.extract_data import sample
 from data.dump_raw_tweets import dump_raw_tweets_in_chunks
+from data.preprocessing import preprocess_all, preprocess, concat
 
 # Set up logger for project
 logger = logging.getLogger()
@@ -18,9 +19,10 @@ logger.addHandler(stream_handler)
 logger.addHandler(file_handler)
 
 logger = logging.getLogger(__name__)
-sample()
+# sample()
 
-start_time = time.time()
-dump_raw_tweets_in_chunks()
-end_time = time.time()
-logger.info(f"Total time taken to get raw tweets: {(end_time - start_time)}")
+# dump_raw_tweets_in_chunks()
+
+# preprocess_all()
+
+concat()
