@@ -4,6 +4,7 @@ import logging
 import re
 import pandas as pd
 from string import punctuation
+from ast import literal_eval
 from nltk.corpus import stopwords
 from nltk.corpus.reader.wordnet import VERB, NOUN, ADJ, ADV
 from nltk.stem import PorterStemmer, WordNetLemmatizer
@@ -30,6 +31,12 @@ tk = TweetTokenizer(preserve_case=False, reduce_len=True)
 # stemmer = PorterStemmer()
 lemmatizer = WordNetLemmatizer()
 stops = stopwords.words("english")
+stopwords_path = os.path.join(current_dir, "stopwords.txt")
+with open(stopwords_path) as f:
+    new_stopwords = f.readlines()
+new_stopwords = [i.rstrip("\n") for i in new_stopwords]
+new_stopwords = [i for i in new_stopwords if i not in stops]
+stops.extend(new_stopwords)
 
 
 def get_wordnet_pos(tag):
@@ -45,18 +52,28 @@ def get_wordnet_pos(tag):
         return None
 
 
-def preprocess(tweet):
+def preprocess(tweet, hashtags):
     """Preprocess a tweet."""
+    processed = tweet
     # Extract hashtags
-    hashtags = re.findall(r"#(\w+)", tweet)
+    # hashtags = re.findall(r"#(\w+)", tweet)
 
     # Change whitespaces to spaces
-    processed = " ".join(tweet.split())
+    # processed = " ".join(tweet.split())
 
     # Segment hashtag
-    processed = re.sub(r"#", "", processed)
+    # processed = re.sub(r"#", "", processed)
+    # for hashtag in hashtags:
+    #     processed = processed.replace(hashtag, seg_tw.segment(hashtag))
+
+    # Segment hashtags
+    hashtags.sort(key=lambda d: d["indices"][1], reverse=True)
     for hashtag in hashtags:
-        processed = processed.replace(hashtag, seg_tw.segment(hashtag))
+        # processed = processed.replace(hashtag, seg_tw.segment(hashtag))
+        start, end = hashtag["indices"]
+        processed = processed[:start + 1] + \
+            seg_tw.segment(hashtag["text"]) + processed[end:]
+    processed = re.sub(r"#", "", processed)
 
     # Preprocess using preprocessor
     prep.set_options(prep.OPT.URL, prep.OPT.MENTION, prep.OPT.RESERVED,
@@ -88,7 +105,7 @@ def preprocess(tweet):
 
     # Stemming
     # tokens = [stemmer.stem(token) for token in tokens]
-    return tokens, hashtags
+    return " ".join(tokens)
 
 
 def preprocess_all(raw_tweets_dir=raw_tweets_dir, processed_tweets_dir=processed_tweets_dir):
@@ -105,18 +122,18 @@ def preprocess_all(raw_tweets_dir=raw_tweets_dir, processed_tweets_dir=processed
             header=0,
             dtype=str,
         )
-        new_df = pd.DataFrame(columns=["tweet_id", "tokens", "hashtags"])
+        df.rename({"entities": "hashtags"})
+        df["processed"] = ""
         for i in range(len(df)):
-            tokens, hashtags = preprocess(df.iloc[i, 1])
-            row = {"tweet_id": df.iloc[
-                i, 0], "tokens": tokens, "hashtags": hashtags}
-            new_df = new_df.append(row, ignore_index=True)
-        new_df.to_csv(chunk_path, index=False)
+            hashtags = literal_eval(df.iat[i, 5])["hashtags"]
+            df.iat[i, 5] = hashtags
+            df.iat[i, 7] = preprocess(df.iat[i, 2], hashtags)
+        df.to_csv(chunk_path, index=False)
 
 
 def concat(data_dir=processed_tweets_dir):
-    files = [file for file in os.listdir(raw_tweets_dir)
-             if os.path.isfile(os.path.join(raw_tweets_dir, file))
+    files = [file for file in os.listdir(data_dir)
+             if os.path.isfile(os.path.join(data_dir, file))
              and file != ERROR_IDS_NAME]  # Get only data files in the directory
     files = [int(os.path.splitext(file)[0])
              for file in files]  # Get ints only from file names

@@ -6,6 +6,7 @@ __pycache__/
 # Data files
 data/COVID19_twitter_full_dataset.csv
 data/COVID19_twitter_partial_dataset.csv
+data/processed_tweets/all_data.csv
 [0-9]*.csv
 
 # Environment file that contains Twitter API access tokens
@@ -13,3 +14,6 @@ data/COVID19_twitter_partial_dataset.csv
 
 # Log files
 *.log
+
+# Miscellaneous
+test.json
