@@ -16,36 +16,27 @@ query_id = []
 array_train_x1 = []
 array_train_x0 = []
 
-#data = pd.read_csv("../../embeddings/full_dataset_label_ids.csv")
-#data = pd.read_csv("../../embeddings/NewsFakeCOVID-19_tweets_expanded.csv")
-#data = pd.read_csv("../../embeddings/ClaimRealCOVID-19_tweets_expanded.csv")
-
-data1 = pd.read_csv("../../embeddings/short_data.csv")
 
 def extract_features(toks):
     # Get features
     features = []
-    token = list(toks.replace("{", "").replace("}", "").replace(",", "").replace(": ", ":").split(" "))
-    for tok in token:
-        if len(tok)>1:
-            features.append(float(tok.split(":")[1])) #Need to change this 
-        else:
-            for i in range(50):
-                features.append(0)
+    for tok in toks:
+        features.append(float(tok.split(":")[1]))
     return features
 
 def extract_query_data(tok):
      #Get queryid documentid
-     query_features = []
-     query_features.append(tok)  #[tok.split(":")[1]] #qid  #Need to change
+     query_features = [tok.split(":")[1]] #qid  
      return query_features
 
 def get_format_data(data_path):
-    data = pd.read_csv(data_path)
-    for i in range(len(data)):
-        y_train.append(randint(0, 1))        #(data["index"][i])
-        x_train.append(extract_features(data["embeddings"][i]))
-        query_id.append(extract_query_data(data["index"][i]))
+   with open(data_path, 'r', encoding='utf-8') as file:
+         for line in file:
+             data, _, comment = line.rstrip().partition("#") 
+             toks = data.split()
+             y_train.append(int(toks[0])) #relativity
+             x_train.append(extract_features(toks[2:])) # doc features
+             query_id.append(extract_query_data(toks[1])) #qid
 
 #dd = get_format_data("../../embeddings/short_data.csv")           
 #dd = get_format_data("test.txt")
@@ -149,7 +140,7 @@ def train():
      
      #Need to change it based on dataset location
      
-     data_path = "../../embeddings/short_data.csv" #base_path # + '/goods_data/train/train_result.txt'
+     data_path = base_path + "/covidtweet_rr/data/libsvm/input_train.txt"
  
      data_loader = get_loader(data_path, batch_size, False, 4)
      total_step = len(data_loader)
@@ -181,7 +172,7 @@ def test():
      
      #Need to change it based on dataset location
      
-     test_path = "../../embeddings/short_data.csv" #base_path # + '/goods_data/test/test_result.txt'
+     test_path = base_path + "/covidtweet_rr/data/libsvm/input_test.txt"
  
      #  Super parameters
      inputs = 50
@@ -190,23 +181,18 @@ def test():
      model = RankNet(inputs, hidden_size, outputs)
      model.load_state_dict(torch.load('model.ckpt'))
      
-     features = []
-     data = pd.read_csv(test_path)
-     
-     for i in range(len(data)):
-         features.append(extract_features(data["embeddings"][i]))
-# =============================================================================
-#      with open(test_path, 'r', encoding='utf-8') as f:
-#          features = []
-#          for line in f:
-#              toks = line.split()
-#              feature = []
-#              for tok in toks[2:]:
-#                  _, value = tok.split(":")
-#                  feature.append(float(value))
-#              features.append(feature)
-#          features = np.array(features)
-# =============================================================================
+     with open(test_path, 'r', encoding='utf-8') as f:
+          features = []
+          for line in f:
+              toks = line.split()
+              feature = []
+              for tok in toks[2:]:
+                  _, value = tok.split(":")
+                  feature.append(float(value))
+              features.append(feature)
+          features = np.array(features)
+      #print(features)
+          
      features = np.array(features)
      features = torch.from_numpy(features).float()
      predict_score = model.predict(features)
