@@ -7,8 +7,8 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import os
-from random import randint
 import matplotlib.pyplot as plt
+from scipy.interpolate import make_interp_spline, BSpline
 
 y_train = []
 x_train = []
@@ -120,14 +120,15 @@ class RankNet(nn.Module):
      def predict(self, input):
          result = self.model(input)
          return result
-     
+
+Loss = [] 
 def train():
      #  Super parameters
      inputs = 50
      hidden_size = 5
      outputs = 1
      learning_rate = 0.2
-     num_epochs = 10
+     num_epochs = 100
      batch_size = 100
  
      model = RankNet(inputs, hidden_size, outputs)
@@ -156,6 +157,7 @@ def train():
              loss = criterion(pred, torch.from_numpy(np.ones(shape=(label_size, 1))).float())
              optimizer.zero_grad()
              loss.backward()
+             Loss.append(float("{:.4f}".format(loss.item())))
              optimizer.step()
          #if i % 10 == 0:
              print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
@@ -191,9 +193,8 @@ def test():
                   feature.append(float(value))
               features.append(feature)
           features = np.array(features)
-      #print(features)
-          
-     features = np.array(features)
+     #print(features)
+     #features = np.array(features)
      features = torch.from_numpy(features).float()
      predict_score = model.predict(features)
      
@@ -203,6 +204,35 @@ result = test()
 result = result.tolist()
 
 
-plt.title("Ranknet")
-plt.ylim(0,1)
-plt.plot(result, color='blue')
+print(len(Loss))
+
+x = set(Loss)
+x= list(x)
+x = np.array(x)
+y = []
+for i in range(len(x)):
+    y.append(i)
+y = np.array(y)
+
+plt.plot(y,x, color='orange')
+plt.show()
+
+# =============================================================================
+# # function for plotting loss
+# def plot_metrics(train_metric, val_metric=None, metric_name=None, title=None, ylim=5):
+#     plt.title(title)
+#     plt.ylim(-1,ylim)
+#     plt.plot(train_metric,color='blue',label=metric_name)
+#     if val_metric is not None: plt.plot(val_metric,color='green',label='val_' + metric_name)
+#     plt.legend(loc="upper right")
+# 
+# # plot loss history
+# plot_metrics(Loss, result, "Loss", "Loss", ylim=1.0)
+# =============================================================================
+
+
+# =============================================================================
+# plt.title("Ranknet")
+# plt.ylim(-1,1)
+# plt.plot(result, color='blue')
+# =============================================================================
