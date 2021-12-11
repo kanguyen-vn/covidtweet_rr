@@ -1,8 +1,8 @@
-from .constants import RAW_TWEETS_DIR_NAME, ERROR_IDS_NAME, PROCESSED_TWEETS_DIR_NAME
 import os
 import logging
 import re
 import pandas as pd
+from shutil import copy2
 from string import punctuation
 from ast import literal_eval
 from nltk.corpus import stopwords
@@ -13,6 +13,9 @@ from nltk import pos_tag
 import preprocessor as prep
 from ekphrasis.classes.segmenter import Segmenter
 
+RAW_TWEETS_DIR_NAME = "raw_tweets"
+ERROR_IDS_NAME = "error_ids.csv"
+PROCESSED_TWEETS_DIR_NAME = "processed_tweets"
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +25,8 @@ processed_tweets_dir = os.path.join(current_dir, PROCESSED_TWEETS_DIR_NAME)
 
 try:
     os.mkdir(processed_tweets_dir)
-    logger.info(f"- Creating {processed_tweets_dir} directory.")
 except FileExistsError:
-    logger.info(f"- {processed_tweets_dir} already created.")
+    pass
 
 seg_tw = Segmenter(corpus="twitter")
 tk = TweetTokenizer(preserve_case=False, reduce_len=True)
@@ -52,14 +54,11 @@ def get_wordnet_pos(tag):
         return None
 
 
-def preprocess(tweet, hashtags):
-    """Preprocess a tweet."""
-    processed = tweet
+def preprocess(text, hashtags=None):
+    """Preprocess a tweet or some document."""
+    processed = text
     # Extract hashtags
     # hashtags = re.findall(r"#(\w+)", tweet)
-
-    # Change whitespaces to spaces
-    # processed = " ".join(tweet.split())
 
     # Segment hashtag
     # processed = re.sub(r"#", "", processed)
@@ -67,18 +66,27 @@ def preprocess(tweet, hashtags):
     #     processed = processed.replace(hashtag, seg_tw.segment(hashtag))
 
     # Segment hashtags
-    hashtags.sort(key=lambda d: d["indices"][1], reverse=True)
-    for hashtag in hashtags:
-        # processed = processed.replace(hashtag, seg_tw.segment(hashtag))
-        start, end = hashtag["indices"]
-        processed = processed[:start + 1] + \
-            seg_tw.segment(hashtag["text"]) + processed[end:]
+    if hashtags is not None:
+        hashtags.sort(key=lambda d: d["indices"][1], reverse=True)
+        for hashtag in hashtags:
+            # processed = processed.replace(hashtag, seg_tw.segment(hashtag))
+            start, end = hashtag["indices"]
+            processed = processed[:start + 1] + \
+                seg_tw.segment(hashtag["text"]) + processed[end:]
     processed = re.sub(r"#", "", processed)
+
+    # Change whitespaces to spaces
+    processed = " ".join([line.strip() for line in processed.splitlines()])
+    processed = " ".join(processed.split())
 
     # Preprocess using preprocessor
     prep.set_options(prep.OPT.URL, prep.OPT.MENTION, prep.OPT.RESERVED,
                      prep.OPT.EMOJI, prep.OPT.SMILEY, prep.OPT.NUMBER)
     processed = prep.clean(processed)
+
+    # Remove punctuation
+    processed = "".join(
+        [char for char in processed if char not in punctuation])
 
     # Tokenize
     tokens = tk.tokenize(processed)
@@ -89,6 +97,9 @@ def preprocess(tweet, hashtags):
     # Remove stopwords and punctuation
     tokens = [
         token for token in tokens if token not in stops and token not in punctuation]
+
+    # Remove numbers
+    tokens = [token for token in tokens if not token.isdigit()]
 
     # Lemmatizing
     tagged = pos_tag(tokens)
@@ -108,6 +119,9 @@ def preprocess(tweet, hashtags):
     return " ".join(tokens)
 
 
+columns_to_keep = ["label", "id", "entities", "full_text"]
+
+
 def preprocess_all(raw_tweets_dir=raw_tweets_dir, processed_tweets_dir=processed_tweets_dir):
     """Preprocess all chunks in raw tweets folder."""
     files = [file for file in os.listdir(raw_tweets_dir)
@@ -120,18 +134,22 @@ def preprocess_all(raw_tweets_dir=raw_tweets_dir, processed_tweets_dir=processed
         df = pd.read_csv(
             raw_chunk_path,
             header=0,
+            usecols=columns_to_keep,
             dtype=str,
         )
-        df.rename({"entities": "hashtags"})
+        df.rename(columns={"entities": "hashtags"}, inplace=True)
         df["processed"] = ""
         for i in range(len(df)):
-            hashtags = literal_eval(df.iat[i, 5])["hashtags"]
-            df.iat[i, 5] = hashtags
-            df.iat[i, 7] = preprocess(df.iat[i, 2], hashtags)
+            # hashtags = literal_eval(df.iat[i, 5])["hashtags"]
+            # df.iat[i, 5] = hashtags
+            # df.iat[i, 7] = preprocess(df.iat[i, 2], hashtags)
+            hashtags = literal_eval(df.iat[i, 2])["hashtags"]
+            df.iat[i, 2] = [hashtag["text"] for hashtag in hashtags]
+            df.iat[i, 4] = preprocess(literal_eval(df.iat[i, 3]), hashtags)
         df.to_csv(chunk_path, index=False)
 
 
-def concat(data_dir=processed_tweets_dir):
+def concat(data_dir):
     files = [file for file in os.listdir(data_dir)
              if os.path.isfile(os.path.join(data_dir, file))
              and file != ERROR_IDS_NAME]  # Get only data files in the directory
@@ -149,3 +167,62 @@ def concat(data_dir=processed_tweets_dir):
         )
         for file in files])
     df.to_csv(os.path.join(data_dir, "all_data.csv"), index=False)
+
+
+def preprocess_all_separately(raw_tweets_dir=raw_tweets_dir, processed_tweets_dir=processed_tweets_dir):
+    for filename in ["ClaimFakeCOVID-19.csv", "ClaimRealCOVID-19.csv"]:
+        logger.info(f"Preprocessing {filename}...")
+        filepath = os.path.join(raw_tweets_dir, filename)
+        df = pd.read_csv(filepath, header=0)
+        df.rename(columns={df.columns[0]: "index"}, inplace=True)
+        df = df[["index", "title"]]
+        for i in range(len(df)):
+            df.iat[i, 1] = preprocess(literal_eval(df.iat[i, 1]))
+        processed_filepath = os.path.join(processed_tweets_dir, filename)
+        df.to_csv(processed_filepath, index=False)
+
+    for filename in ["NewsFakeCOVID-19.csv", "NewsRealCOVID-19.csv"]:
+        logger.info(f"Preprocessing {filename}...")
+        filepath = os.path.join(raw_tweets_dir, filename)
+        df = pd.read_csv(filepath, header=0)
+        df.rename(columns={df.columns[0]: "index"}, inplace=True)
+        df = df[["index", "title", "newstitle", "content", "abstract"]]
+        for i in range(len(df)):
+            for j in range(1, 5):
+                if pd.isnull(df.iat[i, j]):
+                    continue
+                try:
+                    df.iat[i, j] = literal_eval(df.iat[i, j])
+                except:
+                    pass
+                df.iat[i, j] = preprocess(df.iat[i, j])
+        processed_filepath = os.path.join(processed_tweets_dir, filename)
+        df.to_csv(processed_filepath, index=False)
+
+    tweet_files = [f"{pref}COVID-19_tweets_expanded.csv" for pref in [
+        "ClaimFake", "ClaimReal", "NewsFake", "NewsReal"]]
+    for filename in tweet_files:
+        logger.info(f"Preprocessing {filename}...")
+        filepath = os.path.join(raw_tweets_dir, filename)
+        df = pd.read_csv(filepath, header=0)
+        df = df[["index", "id", "full_text", "entities",
+                 "favorite_count", "retweet_count"]]
+        df.rename(columns={"full_text": "processed",
+                           "entities": "hashtags"}, inplace=True)
+        for i in range(len(df)):
+            hashtags = None
+            if not pd.isnull(df.iat[i, 3]):
+                hashtags = literal_eval(df.iat[i, 3])["hashtags"]
+                df.iat[i, 3] = [hashtag["text"] for hashtag in hashtags]
+            if pd.isnull(df.iat[i, 2]):
+                continue
+            try:
+                df.iat[i, 2] = literal_eval(df.iat[i, 2])
+            except:
+                pass
+            df.iat[i, 2] = preprocess(df.iat[i, 2], hashtags)
+        processed_filepath = os.path.join(processed_tweets_dir, filename)
+        df.to_csv(processed_filepath, index=False)
+
+    filepath = os.path.join(raw_tweets_dir, "full_dataset_label_ids.csv")
+    copy2(filepath, processed_tweets_dir)

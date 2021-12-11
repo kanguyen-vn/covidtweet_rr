@@ -30,6 +30,9 @@ like
 wuhan
 corona
 coronavirus
+covid-19
+covid
+covid19
 2019
 ncov
 http

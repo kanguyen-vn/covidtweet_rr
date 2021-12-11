@@ -6,6 +6,13 @@ __pycache__/
 # Data files
 *.csv
 
+# Pretrained embeddings
+glove.twitter.27B.50d.txt
+glove.twitter.27B.50d.word2vec.txt
+
+# Input files
+input_*.txt
+
 # Environment file that contains Twitter API access tokens
 .env
 

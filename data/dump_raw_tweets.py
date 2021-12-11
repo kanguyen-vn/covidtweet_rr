@@ -9,7 +9,9 @@ from dotenv import load_dotenv
 import pandas as pd
 import tweepy
 
-from .constants import RAW_TWEETS_DIR_NAME, PARTIAL_DATASET_NAME, ERROR_IDS_NAME
+RAW_TWEETS_DIR_NAME = "raw_tweets"
+PARTIAL_DATASET_NAME = "COVID19_twitter_partial_dataset.csv"
+ERROR_IDS_NAME = "error_ids.csv"
 
 logger = logging.getLogger(__name__)
 

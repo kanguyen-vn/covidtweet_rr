@@ -1,10 +1,10 @@
-import time
+from time import time
 import logging
 import sys
 
 from data.extract_data import sample
 from data.dump_raw_tweets import dump_raw_tweets_in_chunks
-from data.preprocessing import preprocess_all, concat
+from data.preprocessing import preprocess_all_separately, concat
 
 # Set up logger for project
 logger = logging.getLogger()
@@ -23,6 +23,6 @@ logger = logging.getLogger(__name__)
 
 # dump_raw_tweets_in_chunks()
 
-# preprocess_all()
+preprocess_all_separately()
 
-concat()
+# concat()
