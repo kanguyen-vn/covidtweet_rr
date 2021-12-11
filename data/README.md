@@ -17,8 +17,13 @@ Note that there should NOT be any quotation marks or apostrophes surrounding the
 
 The dataset we use for this project is borrowed from this paper:
 
-> Raj Gupta, Ajay Vishwanath, Yinping Yang. [“COVID-19 Twitter Dataset with Latent Topics, Sentiments and Emotions Attributes.”](https://arxiv.org/pdf/2007.06954.pdf) _Projects: Emotional Responses surrounding COVID-19, September 2020_. Lab: Digital Emotion and Empathy Machine.
-
-The full dataset is available for download at the [OpenICPSR COVID-19 Data Repository](https://doi.org/10.3886/E120321).
-
-The full dataset (`COVID19_twitter_full_dataset.csv`) is rather heavy (22.1GB) so we want to sample from this data. Place the full dataset in the current `data` directory. Executing `extract_data.sample()` will generate a partial dataset that is 0.1% the size of the full dataset and place the resulting file (`COVID19_twitter_partial_dataset.csv`) in the same directory.
+```
+@misc{dharawat2020drink,
+      title={Drink bleach or do what now? Covid-HeRA: A dataset for risk-informed health decision making in the presence of COVID19 misinformation},
+      author={Arkin Dharawat and Ismini Lourentzou and Alex Morales and ChengXiang Zhai},
+      year={2020},
+      eprint={2010.08743},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
+```
