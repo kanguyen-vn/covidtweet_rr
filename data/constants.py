@@ -1,6 +1,0 @@
-FULL_DATASET_NAME = "COVID19_twitter_full_dataset.csv"
-PARTIAL_DATASET_NAME = "COVID19_twitter_partial_dataset.csv"
-PARTIAL_DATASET_METADATA_NAME = "partial_dataset_metadata.json"
-RAW_TWEETS_DIR_NAME = "raw_tweets"
-PROCESSED_TWEETS_DIR_NAME = "processed_tweets"
-ERROR_IDS_NAME = "error_ids.csv"

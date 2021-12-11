@@ -4,10 +4,23 @@ __pycache__/
 *$py.class
 
 # Data files
-*.csv
+data/raw_tweets/
+data/processed_tweets/
+data/tf_idf/
+data/embeddings/
+
+# Pretrained embeddings
+glove.twitter.27B.50d.txt
+glove.twitter.27B.50d.word2vec.txt
+
+# Input files
+input_*.txt
 
 # Environment file that contains Twitter API access tokens
 .env
+
+# TF-Ranking logs
+models/tf_ranking_logs/
 
 # Log files
 *.log

@@ -6,8 +6,9 @@ import random
 
 import pandas as pd
 
-from .constants import FULL_DATASET_NAME, PARTIAL_DATASET_NAME, PARTIAL_DATASET_METADATA_NAME
-
+FULL_DATASET_NAME = "COVID19_twitter_full_dataset.csv"
+PARTIAL_DATASET_NAME = "COVID19_twitter_partial_dataset.csv"
+PARTIAL_DATASET_METADATA_NAME = "partial_dataset_metadata.json"
 SAMPLE_FRACTION = 0.001
 INITIAL_SEED = 27
 
