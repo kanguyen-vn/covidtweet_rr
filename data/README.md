@@ -28,6 +28,10 @@ The dataset we use for this project is borrowed from this paper:
 }
 ```
 
+Run `dump_raw_tweets.py` to get the Tweet information that is necessary for this project.
+
+**Note:** Due to the fact that some time has passed since this data was collected, some Tweets might have already been deleted or restricted. Therefore, the data might not be complete.
+
 ### GloVe word embeddings
 
 For this project, we use the 50-dimensional GloVe word embeddings to vectorize our text data, where each document vector is the average of all its term vectors.
