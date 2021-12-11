@@ -2,6 +2,8 @@ import os
 import sys
 from shutil import copytree, rmtree
 import logging
+import requests
+import zipfile
 import pandas as pd
 from ast import literal_eval
 from collections import defaultdict
@@ -31,6 +33,12 @@ except FileExistsError:
 glove_dir = os.path.join(os.path.dirname(current_dir), "glove")
 try:
     os.mkdir(glove_dir)
+except FileExistsError:
+    pass
+
+model_input_dir = os.path.join(current_dir, "model_input")
+try:
+    os.mkdir(model_input_dir)
 except FileExistsError:
     pass
 
@@ -150,6 +158,25 @@ def tf_idf(input_dir, output_dir):
         df.to_csv(output_filepath, index=False)
 
 
+def download_glove():
+    glove_txt_filename = "glove.twitter.27B.50d.txt"
+    glove_txt_path = os.path.join(glove_dir, glove_txt_filename)
+    if not os.path.exists(glove_txt_path):
+        logger.info("Downloading GloVe word embeddings...")
+        glove_zip_url = "https://nlp.stanford.edu/data/glove.twitter.27B.zip"
+        downloaded = requests.get(glove_zip_url, allow_redirects=True)
+        glove_zip_path = os.path.join(glove_dir, "glove.twitter.27B.zip")
+        with open(glove_zip_path, "wb") as f:
+            f.write(downloaded.content)
+        logger.info("Unzipping...")
+        with zipfile.ZipFile(glove_zip_path, 'r') as zip_ref:
+            zip_ref.extractall(glove_dir)
+        logger.info("Deleting unused embeddings...")
+        for filename in os.listdir(glove_dir):
+            if filename != glove_txt_filename:
+                os.remove(os.path.join(glove_dir, filename))
+
+
 def glove(input_dir, output_dir):
     glove_input_filename = "glove.twitter.27B.50d.txt"
     glove_input_path = os.path.join(glove_dir, glove_input_filename)
@@ -267,6 +294,16 @@ def build_libsvm_input(input_dir, output_dir):
                 literal_eval(irrel_list))
     for query_id in to_delete:
         del query_libsvm_dict[query_id]
+
+    query_embeddings_dict = {}
+    for filename in [*claim_files, *news_files]:
+        temp_path = os.path.join(input_dir, filename)
+        temp_df = pd.read_csv(temp_path, header=0, usecols=[
+                              "index", "embeddings"])
+        for i in range(len(temp_df)):
+            query_embeddings_dict[temp_df.iat[i, 0]
+                                  ] = literal_eval(temp_df.iat[i, 1])
+
     logger.info("Creating full dataset...")
     X = []
     y = []
@@ -275,9 +312,12 @@ def build_libsvm_input(input_dir, output_dir):
         for vector, label in query_libsvm:
             if len(vector) == 0:
                 continue
+            query_vector = query_embeddings_dict[qid]
             row = {"qid": qid}
             row.update(
-                {f"feature{i}": v for i, v in enumerate(vector)})
+                {f"feature{i + 1}": v for i, v in enumerate(query_vector)})
+            row.update(
+                {f"feature{i + len(query_vector) + 1}": v for i, v in enumerate(vector)})
             X.append(row)
             y.append(label)
 
@@ -294,7 +334,7 @@ def build_libsvm_input(input_dir, output_dir):
     def libsvm_output(X, y):
         for vector_tuple, label_tuple in zip(X.iterrows(), y.iteritems()):
             (_1, vector), (_2, label) = vector_tuple, label_tuple
-            yield f"{label} qid:{vector['qid'].astype(int)} {' '.join([f'{k}:{v}' for k, v in enumerate(list(vector.iloc[1:].astype(str)))])}\n"
+            yield f"{label} qid:{vector['qid'].astype(int)} {' '.join([f'{k + 1}:{v}' for k, v in enumerate(list(vector.iloc[1:].astype(str)))])}\n"
 
     logger.info("Writing to files...")
     # logger.info("- Writing training data...")
@@ -335,10 +375,11 @@ if __name__ == "__main__":
     # concatenate_news(tfidf_dir, tfidf_dir)
     # delete_empty_queries_all(tfidf_dir, tfidf_dir)
     # tf_idf(tfidf_dir, tfidf_dir)
-    # copy(processed_tweets_dir, embeddings_dir)
-    # concatenate_news(embeddings_dir, embeddings_dir)
-    # delete_empty_queries_all(embeddings_dir, embeddings_dir)
-    # glove(embeddings_dir, embeddings_dir)
-    # make_labels_unique(embeddings_dir, embeddings_dir)
-    # concat_tweet_data(embeddings_dir, embeddings_dir)
-    build_libsvm_input(embeddings_dir, embeddings_dir)
+
+    copy(processed_tweets_dir, embeddings_dir)
+    concatenate_news(embeddings_dir, embeddings_dir)
+    delete_empty_queries_all(embeddings_dir, embeddings_dir)
+    glove(embeddings_dir, embeddings_dir)
+    make_labels_unique(embeddings_dir, embeddings_dir)
+    concat_tweet_data(embeddings_dir, embeddings_dir)
+    build_libsvm_input(embeddings_dir, model_input_dir)

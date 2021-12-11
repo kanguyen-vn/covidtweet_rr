@@ -27,3 +27,20 @@ The dataset we use for this project is borrowed from this paper:
       primaryClass={cs.CL}
 }
 ```
+
+### GloVe word embeddings
+
+For this project, we use the 50-dimensional GloVe word embeddings to vectorize our text data, where each document vector is the average of all its term vectors.
+
+```
+@inproceedings{pennington2014glove,
+  author = {Jeffrey Pennington and Richard Socher and Christopher D. Manning},
+  booktitle = {Empirical Methods in Natural Language Processing (EMNLP)},
+  title = {GloVe: Global Vectors for Word Representation},
+  year = {2014},
+  pages = {1532--1543},
+  url = {http://www.aclweb.org/anthology/D14-1162},
+}
+```
+
+Please download `glove.twitter.27B.zip` from [here](https://nlp.stanford.edu/projects/glove/), then extract it to get `glove.twitter.27B.50d.txt` and place it in a folder named _glove_ in the base directory.
