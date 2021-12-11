@@ -5,11 +5,11 @@ import six
 import tensorflow as tf
 import tensorflow_ranking as tfr
 
-flags.DEFINE_string("train_path", "../data/embeddings/input_train.txt",
+flags.DEFINE_string("train_path", "../data/model_input/input_train.txt",
                     "Input file path used for training.")
-flags.DEFINE_string("vali_path", "../data/embeddings/input_val.txt",
+flags.DEFINE_string("vali_path", "../data/model_input/input_val.txt",
                     "Input file path used for validation.")
-flags.DEFINE_string("test_path", "../data/embeddings/input_test.txt",
+flags.DEFINE_string("test_path", "../data/model_input/input_test.txt",
                     "Input file path used for testing.")
 flags.DEFINE_string("output_dir", "tf_ranking_logs",
                     "Output directory for models.")
@@ -18,13 +18,13 @@ flags.DEFINE_integer("train_batch_size", 32, "The batch size for training.")
 flags.DEFINE_integer("num_train_steps", 100000,
                      "Number of steps for training.")
 
-flags.DEFINE_float("learning_rate", 0.003, "Learning rate for optimizer.")
+flags.DEFINE_float("learning_rate", 0.005, "Learning rate for optimizer.")
 flags.DEFINE_float("dropout_rate", 0.5,
                    "The dropout rate before output layer.")
 flags.DEFINE_list("hidden_layer_dims", ["16"],
                   "Sizes for hidden layers.")
 
-flags.DEFINE_integer("num_features", 50, "Number of features per document.")
+flags.DEFINE_integer("num_features", 100, "Number of features per document.")
 flags.DEFINE_integer("list_size", 100, "List size used for training.")
 flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
 
@@ -63,7 +63,7 @@ class IteratorInitializerHook(tf.estimator.SessionRunHook):
 
 def example_feature_columns():
     """Returns the example feature columns."""
-    feature_names = ["{}".format(i) for i in range(FLAGS.num_features)]
+    feature_names = ["{}".format(i + 1) for i in range(FLAGS.num_features)]
     return {
         name:
         tf.feature_column.numeric_column(name, shape=(1,), default_value=0.0)
