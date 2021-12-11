@@ -406,6 +406,7 @@ def train_and_eval():
 
     # Evaluate on the test data.
     estimator.evaluate(input_fn=test_input_fn, hooks=[test_hook])
+    return (estimator, train_spec, vali_spec)
 
 
 def main(_):

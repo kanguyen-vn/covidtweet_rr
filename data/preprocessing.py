@@ -119,34 +119,34 @@ def preprocess(text, hashtags=None):
     return " ".join(tokens)
 
 
-columns_to_keep = ["label", "id", "entities", "full_text"]
+# columns_to_keep = ["label", "id", "entities", "full_text"]
 
 
-def preprocess_all(raw_tweets_dir=raw_tweets_dir, processed_tweets_dir=processed_tweets_dir):
-    """Preprocess all chunks in raw tweets folder."""
-    files = [file for file in os.listdir(raw_tweets_dir)
-             if os.path.isfile(os.path.join(raw_tweets_dir, file))
-             and file != ERROR_IDS_NAME]  # Get only data files in the directory
-    for file in files:
-        logger.info(f"Preprocessing {file}...")
-        raw_chunk_path = os.path.join(raw_tweets_dir, file)
-        chunk_path = os.path.join(processed_tweets_dir, file)
-        df = pd.read_csv(
-            raw_chunk_path,
-            header=0,
-            usecols=columns_to_keep,
-            dtype=str,
-        )
-        df.rename(columns={"entities": "hashtags"}, inplace=True)
-        df["processed"] = ""
-        for i in range(len(df)):
-            # hashtags = literal_eval(df.iat[i, 5])["hashtags"]
-            # df.iat[i, 5] = hashtags
-            # df.iat[i, 7] = preprocess(df.iat[i, 2], hashtags)
-            hashtags = literal_eval(df.iat[i, 2])["hashtags"]
-            df.iat[i, 2] = [hashtag["text"] for hashtag in hashtags]
-            df.iat[i, 4] = preprocess(literal_eval(df.iat[i, 3]), hashtags)
-        df.to_csv(chunk_path, index=False)
+# def preprocess_all(raw_tweets_dir=raw_tweets_dir, processed_tweets_dir=processed_tweets_dir):
+#     """Preprocess all chunks in raw tweets folder."""
+#     files = [file for file in os.listdir(raw_tweets_dir)
+#              if os.path.isfile(os.path.join(raw_tweets_dir, file))
+#              and file != ERROR_IDS_NAME]  # Get only data files in the directory
+#     for file in files:
+#         logger.info(f"Preprocessing {file}...")
+#         raw_chunk_path = os.path.join(raw_tweets_dir, file)
+#         chunk_path = os.path.join(processed_tweets_dir, file)
+#         df = pd.read_csv(
+#             raw_chunk_path,
+#             header=0,
+#             usecols=columns_to_keep,
+#             dtype=str,
+#         )
+#         df.rename(columns={"entities": "hashtags"}, inplace=True)
+#         df["processed"] = ""
+#         for i in range(len(df)):
+#             # hashtags = literal_eval(df.iat[i, 5])["hashtags"]
+#             # df.iat[i, 5] = hashtags
+#             # df.iat[i, 7] = preprocess(df.iat[i, 2], hashtags)
+#             hashtags = literal_eval(df.iat[i, 2])["hashtags"]
+#             df.iat[i, 2] = [hashtag["text"] for hashtag in hashtags]
+#             df.iat[i, 4] = preprocess(literal_eval(df.iat[i, 3]), hashtags)
+#         df.to_csv(chunk_path, index=False)
 
 
 def concat(data_dir):

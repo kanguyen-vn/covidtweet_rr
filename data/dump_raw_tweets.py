@@ -107,6 +107,7 @@ def dump_raw_tweets(api=api, input_dir=tweet_ids_dir, output_dir=raw_tweets_dir)
     if os.path.exists(output_dir):
         rmtree(output_dir)
     copytree(input_dir, output_dir, dirs_exist_ok=True)
+    logger.info(f"Dumping raw tweets in {output_dir}...")
     for filename in tweet_files:
         filepath = os.path.join(output_dir, filename)
         df = pd.read_csv(filepath, header=0)
@@ -148,6 +149,8 @@ def dump_raw_tweets(api=api, input_dir=tweet_ids_dir, output_dir=raw_tweets_dir)
                             df.loc[index] = row
                             retry = False
                     df.to_csv(filepath, index=False)
+                df = df[pd.isnull(df["error"])]
+                df.to_csv(filepath, index=False)
                 logger.info("Pausing between chunks...")
                 sleep()
         except Exception as e:
