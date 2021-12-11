@@ -4,11 +4,13 @@ import json
 import logging
 import time
 import datetime
+from shutil import copytree
 from dotenv import load_dotenv
 
 import pandas as pd
 import tweepy
 
+TWEET_IDS_DIR_NAME = "tweet_ids"
 RAW_TWEETS_DIR_NAME = "raw_tweets"
 PARTIAL_DATASET_NAME = "COVID19_twitter_partial_dataset.csv"
 ERROR_IDS_NAME = "error_ids.csv"
@@ -28,17 +30,23 @@ api = tweepy.API(auth)
 logger.info("Setting up directories...")
 current_dir = os.path.dirname(os.path.abspath(__file__))
 raw_tweets_dir = os.path.join(current_dir, RAW_TWEETS_DIR_NAME)
-try:
-    os.mkdir(raw_tweets_dir)
-    logger.info(f"- Creating {raw_tweets_dir} directory.")
-except FileExistsError:
-    logger.info(f"- {raw_tweets_dir} already created.")
+# try:
+#     os.mkdir(raw_tweets_dir)
+#     logger.info(f"- Creating {raw_tweets_dir} directory.")
+# except FileExistsError:
+#     logger.info(f"- {raw_tweets_dir} already created.")
 input_file = os.path.join(current_dir, PARTIAL_DATASET_NAME)
+tweet_ids_dir = os.path.join(current_dir, TWEET_IDS_DIR_NAME)
 
-columns = ["id", "created_at", "full_text",
+columns = ["index", "id", "created_at", "full_text",
            "retweet_count", "favorite_count", "entities", "user"]
 to_keep_in_user = ["id", "name", "screen_name", "followers_count",
                    "friends_count", "favourites_count", "verified", "statuses_count"]
+
+claim_files = ["ClaimFakeCOVID-19.csv", "ClaimRealCOVID-19.csv"]
+news_files = ["NewsFakeCOVID-19.csv", "NewsRealCOVID-19.csv"]
+tweet_files = [f"{pref}COVID-19_tweets_expanded.csv" for pref in [
+    "ClaimFake", "ClaimReal", "NewsFake", "NewsReal"]]
 
 
 def sleep():
@@ -75,26 +83,26 @@ def get_latest_tweet_id(raw_tweets_dir=raw_tweets_dir):
     return df.iat[-1, 0] if not df.empty else None
 
 
-def get_text(api, tweet_id):
-    """Get tweet text by tweet_id using the Twitter API."""
-    tweet_id = tweet_id.strip()
-    tweet_returned = False
-    text = ""
-    exception = None
+# def get_text(api, tweet_id):
+#     """Get tweet text by tweet_id using the Twitter API."""
+#     tweet_id = tweet_id.strip()
+#     tweet_returned = False
+#     text = ""
+#     exception = None
 
-    try:
-        tweet_info = api.get_status(
-            tweet_id, tweet_mode="extended")  # get full tweet
-        tweet_returned = True
-        status_json = json.loads(json.dumps(tweet_info._json))
-        text = status_json["full_text"]
+#     try:
+#         tweet_info = api.get_status(
+#             tweet_id, tweet_mode="extended")  # get full tweet
+#         tweet_returned = True
+#         status_json = json.loads(json.dumps(tweet_info._json))
+#         text = status_json["full_text"]
 
-    except Exception as e:
-        exception = e
-        if isinstance(e, tweepy.TweepyException):
-            logger.error(f"API error on id {tweet_id}, error: {e}")
+#     except Exception as e:
+#         exception = e
+#         if isinstance(e, tweepy.TweepyException):
+#             logger.error(f"API error on id {tweet_id}, error: {e}")
 
-    return tweet_returned, text, exception
+#     return tweet_returned, text, exception
 
 
 def get_full_tweet(api, tweet_id):
@@ -115,6 +123,58 @@ def get_full_tweet(api, tweet_id):
             logger.error(f"API error on id {tweet_id}, error: {e}")
 
     return tweet_returned, status_json, exception
+
+
+def dump_raw_tweets(api=api, input_dir=tweet_ids_dir, output_dir=raw_tweets_dir):
+    copytree(input_dir, output_dir, dirs_exist_ok=True)
+    for filename in tweet_files:
+        filepath = os.path.join(output_dir, filename)
+        df = pd.read_csv(filepath, header=0)
+        try:
+            for limit_index in range(0, len(df), API_RATE_LIMIT):
+                start = limit_index
+                end = min(limit_index + API_RATE_LIMIT, len(df))
+                for index in range(start, end):
+                    tweet_id = df.iat[index, 1]
+                    retry = True
+                    while retry:
+                        tweet_returned, tweet, exception = get_full_tweet(
+                            api, tweet_id)
+                        if tweet_returned:
+                            for key in list(tweet):
+                                if key not in columns:
+                                    del tweet[key]
+                            for key in list(tweet["user"]):
+                                if key not in to_keep_in_user:
+                                    del tweet["user"][key]
+                            row = {
+                                "index": df.iat[index, 0], "id": tweet_id}
+                            row.update(tweet)
+                            df.loc[index] = row
+                            retry = False
+                            continue
+                        if isinstance(exception, tweepy.TooManyRequests):  # Rate limit hit?
+                            logger.error(
+                                "Rate limit hit exception. Taking a break...")
+                            sleep()
+                        else:
+                            # error_row = {"id": tweet_id,
+                            #              "error_type": type(exception).__name__}
+                            # error_df = error_df.append(
+                            #     error_row, ignore_index=True)
+                            retry = False
+                # df.to_csv(chunk_path, index=False)
+                # error_df.to_csv(error_ids_path, index=False)
+                logger.info("Pausing between chunks...")
+                sleep()
+        except Exception as e:
+            # Any other type of error, then shut down
+            if isinstance(e, tweepy.TooManyRequests):
+                logger.error("Rate limit error")
+            else:
+                logger.error(f"Encountered exception: {e}")
+            logger.info("Closing API")
+            return  # Exit condition
 
 
 def dump_raw_tweets_in_chunks(api=api, input_file=input_file, raw_tweets_dir=raw_tweets_dir, chunk_size=4500):
