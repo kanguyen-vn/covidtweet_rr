@@ -129,7 +129,7 @@ def train():
      hidden_size = 5
      outputs = 1
      learning_rate = 0.01
-     num_epochs = 5000
+     num_epochs = 500
      batch_size = 100
  
      model = RankNet(inputs, hidden_size, outputs)
@@ -230,30 +230,33 @@ result = result.tolist()
 result = np.array(result)
 #print(len(result))
 
+plt1 = plt.subplot2grid((3,3), (0,0))
+plt2 = plt.subplot2grid((3,3), (0,2))
+
 Number_epocs = 5000
 def plot_metrics(train_metric, val_metric=None, metric_name=None, title=None, ylim=5):
-    plt.title(title)
-    plt.ylim(0,ylim)
-    plt.plot(train_metric,color='blue',label='Train Loss')
-    if val_metric is not None: plt.plot(val_metric,color='green',label='Test Loss')
-    plt.legend(loc="upper right")
-    plt.xlabel('Number of Epocs = '+ str(Number_epocs)+ ' Learning rate = '+str(0.01))
-    plt.ylabel('Loss Values')
-    plt.savefig('Learning_Rate'+str(0.01)+'.png')
+    plt2.set_title(title)
+    plt2.axis(ymin =0,ymax =ylim)
+    plt2.plot(train_metric,color='blue',label='Train Loss')
+    if val_metric is not None: plt2.plot(val_metric,color='green',label='Test Loss')
+    plt2.legend(loc="upper right")
+    plt2.set_xlabel('Number of Epocs = '+ str(Number_epocs)+ ' Learning rate = '+str(0.01))
+    plt2.set_ylabel('Loss Values')
+    plt2.figure.savefig('Learning_Rate'+str(0.01)+'.jpg')
 
 # plot loss history
-plot_metrics(Train_Loss[0:100], Test_Loss[0:100], "Loss", "RankNet Loss", ylim=1.0)
+plot_metrics(Train_Loss[0:5000], Test_Loss[0:5000], "Loss", "RankNet Loss", ylim=1.0)
 
 
 
 # plot ranking scores
-def plot_scores(title, scores, minn, maxx):
-    plt.title(title)
-    plt.ylim(0.2, 0.6)
-    plt.plot(scores, color='maroon', label='Ranking Scores')
-    plt.xlabel('Number of Epocs = '+ str(Number_epocs)+ ' Learning rate = '+str(0.01))
-    plt.ylabel('Ranking Scores')
-    plt.savefig('Ranking_Scores'+str(Number_epocs))
+def plot_scores(title, scores):
+    plt1.set_title(title)
+    plt1.axis(ymin = 0.2,ymax= 0.6)
+    plt1.plot(scores, color='maroon', label='Ranking Scores')
+    plt1.set_xlabel('Number of Epocs = '+ str(Number_epocs)+ ' Learning rate = '+str(0.01))
+    plt1.set_ylabel('Ranking Scores')
+    plt1.figure.savefig('Ranking_Scores'+str(Number_epocs)+'.jpg')
 
   
 plot_scores('RankNet Ranking Scores', result[0:5000])
