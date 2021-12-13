@@ -99,63 +99,63 @@ def delete_empty_queries(column, query_files, input_dir, output_dir):
         tweet_df.to_csv(output_tweet_filepath, index=False)
 
 
-def tf_idf(input_dir, output_dir):
-    logger.info("Collecting documents for td-idf...")
-    all_documents = []  # All documents for tf_idf
-    df_lens = []  # Stores dataframe lengths for easy indexing
+# def tf_idf(input_dir, output_dir):
+#     logger.info("Collecting documents for td-idf...")
+#     all_documents = []  # All documents for tf_idf
+#     df_lens = []  # Stores dataframe lengths for easy indexing
 
-    for filename in claim_files:
-        logger.info(f"- Processing {filename}...")
-        filepath = os.path.join(input_dir, filename)
-        df = pd.read_csv(filepath, header=0)
-        df_lens.append(len(df))
-        all_documents.extend(
-            [document for _, document in df["title"].iteritems()])
+#     for filename in claim_files:
+#         logger.info(f"- Processing {filename}...")
+#         filepath = os.path.join(input_dir, filename)
+#         df = pd.read_csv(filepath, header=0)
+#         df_lens.append(len(df))
+#         all_documents.extend(
+#             [document for _, document in df["title"].iteritems()])
 
-    for filename in news_files:
-        logger.info(f"- Processing {filename}...")
-        filepath = os.path.join(input_dir, filename)
-        df = pd.read_csv(filepath, header=0)
-        df_lens.append(len(df))
-        all_documents.extend(
-            [document for _, document in df["concatenated"].iteritems()])
+#     for filename in news_files:
+#         logger.info(f"- Processing {filename}...")
+#         filepath = os.path.join(input_dir, filename)
+#         df = pd.read_csv(filepath, header=0)
+#         df_lens.append(len(df))
+#         all_documents.extend(
+#             [document for _, document in df["concatenated"].iteritems()])
 
-    for filename in tweet_files:
-        logger.info(f"- Processing {filename}...")
-        filepath = os.path.join(input_dir, filename)
-        df = pd.read_csv(filepath, header=0)
-        df_lens.append(len(df))
-        all_documents.extend(
-            [document for _, document in df["processed"].iteritems()])
+#     for filename in tweet_files:
+#         logger.info(f"- Processing {filename}...")
+#         filepath = os.path.join(input_dir, filename)
+#         df = pd.read_csv(filepath, header=0)
+#         df_lens.append(len(df))
+#         all_documents.extend(
+#             [document for _, document in df["processed"].iteritems()])
 
-    for i in range(len(all_documents)):
-        if pd.isnull(all_documents[i]):
-            all_documents[i] = ""
+#     for i in range(len(all_documents)):
+#         if pd.isnull(all_documents[i]):
+#             all_documents[i] = ""
 
-    # Determine start and end indices of each csv file
-    for i in range(1, 8):
-        df_lens[i] += df_lens[i - 1]
+#     # Determine start and end indices of each csv file
+#     for i in range(1, 8):
+#         df_lens[i] += df_lens[i - 1]
 
-    vectorizer = TfidfVectorizer()
-    logger.info("Vectorizing...")
-    X = vectorizer.fit_transform(all_documents)
-    # Size of vocabulary is 45,840
-    logger.info("Finished vectorizing. Saving tfidf values...")
+#     vectorizer = TfidfVectorizer()
+#     logger.info("Vectorizing...")
+#     X = vectorizer.fit_transform(all_documents)
+#     # Size of vocabulary is 45,840
+#     logger.info("Finished vectorizing. Saving tfidf values...")
 
-    for file_index, filename in enumerate([*claim_files, *news_files, *tweet_files]):
-        logger.info(f"- Processing {filename}...")
-        filepath = os.path.join(input_dir, filename)
-        df = pd.read_csv(filepath, header=0)
-        start = 0 if file_index == 0 else df_lens[file_index - 1]
-        end = df_lens[file_index]
-        feature_dict_list = []
-        for row_index in range(start, end):
-            row = coo_matrix(X[row_index])
-            feature_dict = {j: v for j, v in zip(row.col, row.data)}
-            feature_dict_list.append(feature_dict)
-        df["tfidf"] = feature_dict_list
-        output_filepath = os.path.join(output_dir, filename)
-        df.to_csv(output_filepath, index=False)
+#     for file_index, filename in enumerate([*claim_files, *news_files, *tweet_files]):
+#         logger.info(f"- Processing {filename}...")
+#         filepath = os.path.join(input_dir, filename)
+#         df = pd.read_csv(filepath, header=0)
+#         start = 0 if file_index == 0 else df_lens[file_index - 1]
+#         end = df_lens[file_index]
+#         feature_dict_list = []
+#         for row_index in range(start, end):
+#             row = coo_matrix(X[row_index])
+#             feature_dict = {j: v for j, v in zip(row.col, row.data)}
+#             feature_dict_list.append(feature_dict)
+#         df["tfidf"] = feature_dict_list
+#         output_filepath = os.path.join(output_dir, filename)
+#         df.to_csv(output_filepath, index=False)
 
 
 def download_glove():
@@ -191,10 +191,10 @@ def glove(input_dir, output_dir):
 
     def get_doc_embedding(document):
         if pd.isnull(document):
-            return []
+            return np.nan
         document = [word for word in document if word in model.vocab]
         if len(document) == 0:
-            return []
+            return np.nan
         mean = np.mean(model[document], axis=0)
         return mean.tolist()
 
@@ -236,7 +236,7 @@ def make_labels_unique(input_dir, output_dir):
 
 def concat_tweet_data(input_dir, output_dir):
     logger.info("Concatenating tweet dataframes...")
-    dfs = [pd.read_csv(os.path.join(input_dir, filename), header=0)
+    dfs = [pd.read_csv(os.path.join(input_dir, filename), header=0).dropna(subset=["embeddings"])
            for filename in tweet_files]
     df = pd.concat(dfs)
     output_file_path = os.path.join(output_dir, "all_data.csv")
@@ -274,6 +274,8 @@ def build_libsvm_input(input_dir, output_dir):
         "index"), df.columns.get_loc("embeddings")
     logger.info("Adding relevant data...")
     for i in range(len(df)):
+        # if pd.isnull(df.iat[i, embeddings_col]):
+        #     continue
         embeddings_list = literal_eval(df.iat[i, embeddings_col])
         if len(embeddings_list) == 0:
             continue
@@ -376,11 +378,11 @@ if __name__ == "__main__":
     # delete_empty_queries_all(tfidf_dir, tfidf_dir)
     # tf_idf(tfidf_dir, tfidf_dir)
 
-    # copy(processed_tweets_dir, embeddings_dir)
-    # concatenate_news(embeddings_dir, embeddings_dir)
-    # delete_empty_queries_all(embeddings_dir, embeddings_dir)
-    download_glove()
-    # glove(embeddings_dir, embeddings_dir)
-    # make_labels_unique(embeddings_dir, embeddings_dir)
-    # concat_tweet_data(embeddings_dir, embeddings_dir)
+    copy(processed_tweets_dir, embeddings_dir)
+    concatenate_news(embeddings_dir, embeddings_dir)
+    delete_empty_queries_all(embeddings_dir, embeddings_dir)
+    # download_glove()
+    glove(embeddings_dir, embeddings_dir)
+    make_labels_unique(embeddings_dir, embeddings_dir)
+    concat_tweet_data(embeddings_dir, embeddings_dir)
     # build_libsvm_input(embeddings_dir, model_input_dir)

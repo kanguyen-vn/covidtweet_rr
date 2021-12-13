@@ -8,6 +8,8 @@ data/raw_tweets/
 data/processed_tweets/
 data/tf_idf/
 data/embeddings/
+all_querydata.csv
+all_tweetdata.csv
 
 # Pretrained embeddings
 glove.twitter.27B.50d.txt
@@ -28,3 +30,4 @@ models/tf_ranking_logs/
 # Miscellaneous
 *.json
 data/extract_data.py
+demo/

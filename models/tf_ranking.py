@@ -21,7 +21,7 @@ flags.DEFINE_integer("num_train_steps", 100000,
 flags.DEFINE_float("learning_rate", 0.005, "Learning rate for optimizer.")
 flags.DEFINE_float("dropout_rate", 0.5,
                    "The dropout rate before output layer.")
-flags.DEFINE_list("hidden_layer_dims", ["16"],
+flags.DEFINE_list("hidden_layer_dims", ["32"],
                   "Sizes for hidden layers.")
 
 flags.DEFINE_integer("num_features", 100, "Number of features per document.")
