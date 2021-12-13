@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import pandas as pd
 import torch
 import torch.utils.data as data
 import torch.nn as nn
@@ -8,7 +7,8 @@ import torch.optim as optim
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from scipy.interpolate import make_interp_spline, BSpline
+
+
 
 y_train = []
 x_train = []
@@ -121,14 +121,15 @@ class RankNet(nn.Module):
          result = self.model(input)
          return result
 
-Loss = [] 
+Train_Loss = [] 
+
 def train():
      #  Super parameters
-     inputs = 50
+     inputs = 100
      hidden_size = 5
      outputs = 1
-     learning_rate = 0.2
-     num_epochs = 100
+     learning_rate = 0.01
+     num_epochs = 5000
      batch_size = 100
  
      model = RankNet(inputs, hidden_size, outputs)
@@ -141,7 +142,7 @@ def train():
      
      #Need to change it based on dataset location
      
-     data_path = base_path + "/covidtweet_rr/data/libsvm/input_train.txt"
+     data_path = base_path + "/covidtweet_rr/data/new_libsvm/input_train.txt"
  
      data_loader = get_loader(data_path, batch_size, False, 4)
      total_step = len(data_loader)
@@ -157,7 +158,7 @@ def train():
              loss = criterion(pred, torch.from_numpy(np.ones(shape=(label_size, 1))).float())
              optimizer.zero_grad()
              loss.backward()
-             Loss.append(float("{:.4f}".format(loss.item())))
+             Train_Loss.append(float("{:.4f}".format(loss.item())))
              optimizer.step()
          #if i % 10 == 0:
              print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
@@ -166,7 +167,11 @@ def train():
      torch.save(model.state_dict(), 'model.ckpt')
 
 train()
-     
+
+
+
+Test_Loss = []
+
 def test():
      #test data
      base_path = os.path.abspath(os.path.join(os.getcwd(), '..'))
@@ -174,16 +179,17 @@ def test():
      
      #Need to change it based on dataset location
      
-     test_path = base_path + "/covidtweet_rr/data/libsvm/input_test.txt"
+     test_path = base_path + "/covidtweet_rr/data/new_libsvm/input_test.txt"
  
      #  Super parameters
-     inputs = 50
+     inputs = 100
      hidden_size = 5
      outputs = 1
      model = RankNet(inputs, hidden_size, outputs)
      model.load_state_dict(torch.load('model.ckpt'))
      
      with open(test_path, 'r', encoding='utf-8') as f:
+          #content = f.readlines()
           features = []
           for line in f:
               toks = line.split()
@@ -191,48 +197,65 @@ def test():
               for tok in toks[2:]:
                   _, value = tok.split(":")
                   feature.append(float(value))
-              features.append(feature)
+              features.append(feature)     
           features = np.array(features)
-     #print(features)
      #features = np.array(features)
      features = torch.from_numpy(features).float()
      predict_score = model.predict(features)
      
+     #print('line number'+ str(content))
+     criterion = nn.BCELoss()
+     optimizer = optim.Adadelta(model.parameters(), lr = 0.001)
+     data_loader = get_loader(test_path, 100, False, 4)
+
+      #    The batch size method is used here, not every time a pair of docs is passed in for forward and backward propagation
+      #  (tips: There is also a way to input all docs pairs under each query as batches into the network for forward and backward, but Dataset and DataLoader cannot be used here)
+     for epoch in range(100):
+         for i, (data1, data2) in enumerate(data_loader):
+              #print('Epoch [{}/{}], Step [{}/{}]'.format(epoch, num_epochs, i, total_step))
+             data1 = data1
+             data2 = data2
+             label_size = data1.size()[0]
+             pred = model(data1, data2)
+             loss = criterion(pred, torch.from_numpy(np.ones(shape=(label_size, 1))).float())
+             optimizer.zero_grad()
+             loss.backward()
+             Test_Loss.append(float("{:.4f}".format(loss.item())))
+             optimizer.step()
+
      return predict_score
 
 result = test()
 result = result.tolist()
+result = np.array(result)
+#print(len(result))
+
+Number_epocs = 5000
+def plot_metrics(train_metric, val_metric=None, metric_name=None, title=None, ylim=5):
+    plt.title(title)
+    plt.ylim(0,ylim)
+    plt.plot(train_metric,color='blue',label='Train Loss')
+    if val_metric is not None: plt.plot(val_metric,color='green',label='Test Loss')
+    plt.legend(loc="upper right")
+    plt.xlabel('Number of Epocs = '+ str(Number_epocs)+ ' Learning rate = '+str(0.01))
+    plt.ylabel('Loss Values')
+    plt.savefig('Learning_Rate'+str(0.01)+'.png')
+
+# plot loss history
+plot_metrics(Train_Loss[0:100], Test_Loss[0:100], "Loss", "RankNet Loss", ylim=1.0)
 
 
-print(len(Loss))
 
-x = set(Loss)
-x= list(x)
-x = np.array(x)
-y = []
-for i in range(len(x)):
-    y.append(i)
-y = np.array(y)
+# plot ranking scores
+def plot_scores(title, scores, minn, maxx):
+    plt.title(title)
+    plt.ylim(0.2, 0.6)
+    plt.plot(scores, color='maroon', label='Ranking Scores')
+    plt.xlabel('Number of Epocs = '+ str(Number_epocs)+ ' Learning rate = '+str(0.01))
+    plt.ylabel('Ranking Scores')
+    plt.savefig('Ranking_Scores'+str(Number_epocs))
 
-plt.plot(y,x, color='orange')
-plt.show()
-
-# =============================================================================
-# # function for plotting loss
-# def plot_metrics(train_metric, val_metric=None, metric_name=None, title=None, ylim=5):
-#     plt.title(title)
-#     plt.ylim(-1,ylim)
-#     plt.plot(train_metric,color='blue',label=metric_name)
-#     if val_metric is not None: plt.plot(val_metric,color='green',label='val_' + metric_name)
-#     plt.legend(loc="upper right")
-# 
-# # plot loss history
-# plot_metrics(Loss, result, "Loss", "Loss", ylim=1.0)
-# =============================================================================
+  
+plot_scores('RankNet Ranking Scores', result[0:5000])
 
 
-# =============================================================================
-# plt.title("Ranknet")
-# plt.ylim(-1,1)
-# plt.plot(result, color='blue')
-# =============================================================================
