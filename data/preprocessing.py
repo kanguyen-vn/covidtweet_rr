@@ -226,3 +226,10 @@ def preprocess_all_separately(raw_tweets_dir=raw_tweets_dir, processed_tweets_di
 
     filepath = os.path.join(raw_tweets_dir, "full_dataset_label_ids.csv")
     copy2(filepath, processed_tweets_dir)
+
+
+if __name__ == "__main__":
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO,
+                        format="%(asctime)s %(name)s [%(levelname)s] %(message)s")
+    logger = logging.getLogger(__name__)
+    preprocess_all_separately()

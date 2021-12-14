@@ -12,8 +12,6 @@ import tweepy
 
 TWEET_IDS_DIR_NAME = "tweet_ids"
 RAW_TWEETS_DIR_NAME = "raw_tweets"
-# PARTIAL_DATASET_NAME = "COVID19_twitter_partial_dataset.csv"
-ERROR_IDS_NAME = "error_ids.csv"
 
 logger = logging.getLogger(__name__)
 
@@ -283,7 +281,4 @@ if __name__ == "__main__":
     logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                         format="%(asctime)s %(name)s [%(levelname)s] %(message)s")
     logger = logging.getLogger(__name__)
-    start_time = time.time()
     dump_raw_tweets()
-    end_time = time.time()
-    logger.info(f"Total time taken: {(end_time - start_time)}")

@@ -1,17 +1,21 @@
 from absl import flags
 
+import os
 import numpy as np
 import six
 import tensorflow as tf
 import tensorflow_ranking as tfr
 
-flags.DEFINE_string("train_path", "../data/model_input/input_train.txt",
+current_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(current_dir)
+
+flags.DEFINE_string("train_path", os.path.join(root_dir, "data", "model_input", "input_train.txt"),
                     "Input file path used for training.")
-flags.DEFINE_string("vali_path", "../data/model_input/input_val.txt",
+flags.DEFINE_string("vali_path", os.path.join(root_dir, "data", "model_input", "input_val.txt"),
                     "Input file path used for validation.")
-flags.DEFINE_string("test_path", "../data/model_input/input_test.txt",
+flags.DEFINE_string("test_path", os.path.join(root_dir, "data", "model_input", "input_test.txt"),
                     "Input file path used for testing.")
-flags.DEFINE_string("output_dir", "tf_ranking_logs",
+flags.DEFINE_string("output_dir", os.path.join(current_dir, "tf_ranking_logs"),
                     "Output directory for models.")
 
 flags.DEFINE_integer("train_batch_size", 32, "The batch size for training.")
@@ -21,7 +25,7 @@ flags.DEFINE_integer("num_train_steps", 100000,
 flags.DEFINE_float("learning_rate", 0.005, "Learning rate for optimizer.")
 flags.DEFINE_float("dropout_rate", 0.5,
                    "The dropout rate before output layer.")
-flags.DEFINE_list("hidden_layer_dims", ["32"],
+flags.DEFINE_list("hidden_layer_dims", ["64", "32"],
                   "Sizes for hidden layers.")
 
 flags.DEFINE_integer("num_features", 100, "Number of features per document.")
