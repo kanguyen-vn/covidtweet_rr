@@ -7,6 +7,7 @@ import torch.optim as optim
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+from torchmetrics import RetrievalMAP, RetrievalMRR
 
 
 
@@ -122,14 +123,48 @@ class RankNet(nn.Module):
          return result
 
 Train_Loss = [] 
+Eval_Scores = []
+
+def evaluate():
+     #evaluate data
+     base_path = os.path.abspath(os.path.join(os.getcwd(), '..'))
+     base_path = os.path.dirname(base_path)
+     
+     #Need to change it based on dataset location
+     
+     eval_path = base_path + "/covidtweet_rr/data/new_libsvm/input_val.txt"
+ 
+     #  Super parameters
+     inputs = 100
+     hidden_size = 50
+     outputs = 1
+     model = RankNet(inputs, hidden_size, outputs)
+     model.load_state_dict(torch.load('model.ckpt'))
+     
+     with open(eval_path, 'r', encoding='utf-8') as f:
+          #content = f.readlines()
+          features = []
+          for line in f:
+              toks = line.split()
+              feature = []
+              for tok in toks[2:]:
+                  _, value = tok.split(":")
+                  feature.append(float(value))
+              features.append(feature)     
+          features = np.array(features)
+     #features = np.array(features)
+     features = torch.from_numpy(features).float()
+     eval_score = model.predict(features)
+     
+     return eval_score
 
 def train():
      #  Super parameters
      inputs = 100
-     hidden_size = 5
+     hidden_size = 50
      outputs = 1
      learning_rate = 0.01
-     num_epochs = 500
+     num_epochs = 5000
      batch_size = 100
  
      model = RankNet(inputs, hidden_size, outputs)
@@ -165,11 +200,50 @@ def train():
                    .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
  
      torch.save(model.state_dict(), 'model.ckpt')
+     
+     evals = evaluate()
+     evals = evals.tolist()
+
+     Eval_Scores.extend(evals)
 
 train()
 
 
+target_scores = []
+def target():
+     base_path = os.path.abspath(os.path.join(os.getcwd(), '..'))
+     base_path = os.path.dirname(base_path)
+     
+     #Need to change it based on dataset location
+     
+     tar_path = base_path + "/covidtweet_rr/data/new_libsvm/input_test.txt"
+     
+     with open(tar_path, 'r', encoding='utf-8') as file:
+         for line in file:
+             data, _, comment = line.rstrip().partition("#") 
+             toks = data.split()
+             target_scores.append(int(toks[0]))
 
+target()
+
+indexes = []
+def index():
+    base_path = os.path.abspath(os.path.join(os.getcwd(), '..'))
+    base_path = os.path.dirname(base_path)
+     
+     #Need to change it based on dataset location
+     
+    tar_path = base_path + "/covidtweet_rr/data/new_libsvm/input_test.txt"
+     
+    with open(tar_path, 'r', encoding='utf-8') as file:
+         for line in file:
+             data, _, comment = line.rstrip().partition("#") 
+             toks = data.split()
+             indexes.append(int(np.array(extract_query_data(toks[1]))))
+
+index()
+
+   
 Test_Loss = []
 
 def test():
@@ -183,27 +257,12 @@ def test():
  
      #  Super parameters
      inputs = 100
-     hidden_size = 5
+     hidden_size = 50
      outputs = 1
      model = RankNet(inputs, hidden_size, outputs)
      model.load_state_dict(torch.load('model.ckpt'))
      
-     with open(test_path, 'r', encoding='utf-8') as f:
-          #content = f.readlines()
-          features = []
-          for line in f:
-              toks = line.split()
-              feature = []
-              for tok in toks[2:]:
-                  _, value = tok.split(":")
-                  feature.append(float(value))
-              features.append(feature)     
-          features = np.array(features)
-     #features = np.array(features)
-     features = torch.from_numpy(features).float()
-     predict_score = model.predict(features)
-     
-     #print('line number'+ str(content))
+   
      criterion = nn.BCELoss()
      optimizer = optim.Adadelta(model.parameters(), lr = 0.001)
      data_loader = get_loader(test_path, 100, False, 4)
@@ -223,42 +282,60 @@ def test():
              Test_Loss.append(float("{:.4f}".format(loss.item())))
              optimizer.step()
 
-     return predict_score
 
-result = test()
-result = result.tolist()
-result = np.array(result)
-#print(len(result))
+test()
 
-plt1 = plt.subplot2grid((3,3), (0,0))
-plt2 = plt.subplot2grid((3,3), (0,2))
+
 
 Number_epocs = 5000
+
+
+Eval_Scores.pop()
+Eval_Scores = np.array(Eval_Scores)
+indexes = np.array(indexes)
+
+tmp = []
+for i in range(len(Eval_Scores)):
+     tmp.append(abs(Eval_Scores[i][0]))
+
+
+
 def plot_metrics(train_metric, val_metric=None, metric_name=None, title=None, ylim=5):
-    plt2.set_title(title)
-    plt2.axis(ymin =0,ymax =ylim)
-    plt2.plot(train_metric,color='blue',label='Train Loss')
-    if val_metric is not None: plt2.plot(val_metric,color='green',label='Test Loss')
-    plt2.legend(loc="upper right")
-    plt2.set_xlabel('Number of Epocs = '+ str(Number_epocs)+ ' Learning rate = '+str(0.01))
-    plt2.set_ylabel('Loss Values')
-    plt2.figure.savefig('Learning_Rate'+str(0.01)+'.jpg')
+    plt.title(title)
+    plt.axis(ymin =0,ymax =ylim)
+    plt.plot(train_metric,color='blue',label='Train Loss')
+    if val_metric is not None: plt.plot(val_metric,color='green',label='Test Loss')
+    plt.legend(loc="upper right")
+    plt.xlabel('Number of Epocs = '+ str(Number_epocs)+ ' Learning rate = '+str(0.01))
+    plt.ylabel('Loss Values')
+    plt.savefig('Learning_Rate'+str(0.01)+'.jpg')
 
 # plot loss history
-plot_metrics(Train_Loss[0:5000], Test_Loss[0:5000], "Loss", "RankNet Loss", ylim=1.0)
-
-
-
-# plot ranking scores
-def plot_scores(title, scores):
-    plt1.set_title(title)
-    plt1.axis(ymin = 0.2,ymax= 0.6)
-    plt1.plot(scores, color='maroon', label='Ranking Scores')
-    plt1.set_xlabel('Number of Epocs = '+ str(Number_epocs)+ ' Learning rate = '+str(0.01))
-    plt1.set_ylabel('Ranking Scores')
-    plt1.figure.savefig('Ranking_Scores'+str(Number_epocs)+'.jpg')
+plot_metrics(Train_Loss[0:Number_epocs], Test_Loss[0:Number_epocs], "Loss", "RankNet Loss", ylim=1.0)
 
   
-plot_scores('RankNet Ranking Scores', result[0:5000])
+# plot ranking scores
+def plot_scores(title, scores, minn, maxx):
+    plt.title(title)
+    plt.ylim(ymin = minn,ymax= maxx)
+    plt.plot(scores, color='maroon', label='Ranking Scores')
+    plt.xlabel('Number of Epocs = '+ str(Number_epocs)+ ' Learning rate = '+str(0.01))
+    plt.ylabel('Ranking Scores')
+    plt.savefig('Ranking_Scores'+str(Number_epocs)+'.jpg')
+
+  
+plot_scores('RankNet Ranking Scores', tmp, tmp[0]-0.1, tmp[len(tmp)-1]+0.1)
+
+# mrr and map evaluation
+ind = torch.tensor(indexes)
+preds = torch.tensor(tmp)
+tar = torch.tensor(target_scores)
+
+rmap = RetrievalMAP()
+print('MAP')
+print(rmap(preds, tar, ind))
 
 
+rmrr = RetrievalMRR() 
+print('MRR')
+print(rmrr(preds, tar, ind))
