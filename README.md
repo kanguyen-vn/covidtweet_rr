@@ -37,4 +37,5 @@ The requirements were generated with `pip freeze > requirements.txt` and can be 
 2. Set up your Twitter API keys (as detailed [here](data/README.md)).
 3. Run [get_data.sh](get_data.sh) to obtain raw tweets with the Twitter API.
 4. Run [prepare_data.sh](prepare_data.sh) to prepare input data for the 3 different models.
-5. Run any of the three files in [models](models/) with `python {filename}` to run or train our models.
+5. For RankNet create a folder named **libsvm** and put the <i>input_train.txt, input_val.txt, input_test.txt</i> files inside that directory. 
+5. Run any of the three files in [models](models/) with `python/python3 {filename}` to run or train our models.

@@ -99,6 +99,7 @@ termcolor==1.1.0
 threadpoolctl==2.2.0
 toml==0.10.1
 torch==1.6.0
+torchmetrics==0.6.1
 tornado==6.1
 tqdm==4.62.3
 tweepy==4.1.0

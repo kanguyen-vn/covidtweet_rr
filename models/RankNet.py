@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+#!/usr/bin/env python3
 import torch
 import torch.utils.data as data
 import torch.nn as nn
@@ -132,7 +132,7 @@ def evaluate():
      
      #Need to change it based on dataset location
      
-     eval_path = base_path + "/covidtweet_rr/data/new_libsvm/input_val.txt"
+     eval_path = base_path + "/covidtweet_rr/data/libsvm/input_val.txt"
  
      #  Super parameters
      inputs = 100
@@ -177,7 +177,7 @@ def train():
      
      #Need to change it based on dataset location
      
-     data_path = base_path + "/covidtweet_rr/data/new_libsvm/input_train.txt"
+     data_path = base_path + "/covidtweet_rr/data/libsvm/input_train.txt"
  
      data_loader = get_loader(data_path, batch_size, False, 4)
      total_step = len(data_loader)
@@ -216,7 +216,7 @@ def target():
      
      #Need to change it based on dataset location
      
-     tar_path = base_path + "/covidtweet_rr/data/new_libsvm/input_test.txt"
+     tar_path = base_path + "/covidtweet_rr/data/libsvm/input_test.txt"
      
      with open(tar_path, 'r', encoding='utf-8') as file:
          for line in file:
