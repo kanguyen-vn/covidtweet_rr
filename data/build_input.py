@@ -1,6 +1,6 @@
 import os
 import sys
-from shutil import copytree, rmtree
+from shutil import copytree, rmtree, copyfile
 import logging
 import requests
 import zipfile
@@ -39,6 +39,12 @@ except FileExistsError:
 model_input_dir = os.path.join(current_dir, "model_input")
 try:
     os.mkdir(model_input_dir)
+except FileExistsError:
+    pass
+
+bm25_input_dir = os.path.join(current_dir, "bm25_input")
+try:
+    os.mkdir(bm25_input_dir)
 except FileExistsError:
     pass
 
@@ -243,6 +249,34 @@ def concat_tweet_data(input_dir, output_dir):
     df.to_csv(output_file_path, index=False)
 
 
+def build_bm25_input(output_dir):
+    logger.info("Building data for BM25...")
+    all_data_path = os.path.join(embeddings_dir, "all_data.csv")
+    if not os.path.exists(all_data_path):
+        all_data_path = concat_tweet_data(embeddings_dir, embeddings_dir)
+    output_all_tweet_path = os.path.join(output_dir, "all_tweetdata.csv")
+    all_tweet_df = pd.read_csv(all_data_path, header=0, usecols=[
+                               "index", "id", "processed"])
+    all_tweet_df.to_csv(output_all_tweet_path, index=False)
+
+    output_all_query_path = os.path.join(output_dir, "all_querydata.csv")
+    all_queries = []
+    for filename in claim_files:
+        filepath = os.path.join(embeddings_dir, filename)
+        claim_df = pd.read_csv(filepath, header=0, usecols=["index", "title"])
+        all_queries.append(claim_df)
+
+    for filename in news_files:
+        filepath = os.path.join(embeddings_dir, filename)
+        news_df = pd.read_csv(filepath, header=0, usecols=[
+                              "index", "concatenated"])
+        news_df = news_df.rename(columns={"concatenated": "title"})
+        all_queries.append(news_df)
+
+    all_query_df = pd.concat(all_queries, ignore_index=True)
+    all_query_df.to_csv(output_all_query_path, index=False)
+
+
 class QueryLIBSVM:
     def __init__(self, query_id):
         self.id = query_id
@@ -385,4 +419,5 @@ if __name__ == "__main__":
     glove(embeddings_dir, embeddings_dir)
     make_labels_unique(embeddings_dir, embeddings_dir)
     concat_tweet_data(embeddings_dir, embeddings_dir)
+    build_bm25_input(bm25_input_dir)
     build_libsvm_input(embeddings_dir, model_input_dir)
